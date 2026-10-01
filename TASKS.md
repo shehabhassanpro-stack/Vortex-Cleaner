@@ -128,19 +128,19 @@ This is the definitive industry standard employed by Microsoft Sysinternals (**R
 **Subsystem:** Volatile Memory Forensics (`WinTracePurge::Storage::CMemoryStandbyFlusher`)  
 **Target File:** `src/storage/memory_standby_flusher.hpp`
 
-- [ ] **TASK-04: Completely Eradicate Global Working Set Trimming (`MemoryEmptyWorkingSets`)**
+- [x] **TASK-04: Completely Eradicate Global Working Set Trimming (`MemoryEmptyWorkingSets`)**
   - **Issue:** Invoking command 2 (`MemoryEmptyWorkingSets`) strips pages from all running processes (including `csrss.exe`, `dwm.exe`, and services), provoking massive hard page faults and triggering BSOD 0x50 if orphaned driver callbacks execute at `IRQL >= DISPATCH_LEVEL`.
   - **Implementation:**
     Remove the execution block of `cmdEmptyWS = SYSTEM_MEMORY_LIST_COMMAND::MemoryEmptyWorkingSets;`. Protect active process working sets from violent pageout.
   - **Verification:** Inspect process working set sizes in Task Manager during purge; verify zero system UI freezes.
 
-- [ ] **TASK-05: Eliminate Synchronous Modified Page Flushes (`MemoryFlushModifiedList`)**
+- [x] **TASK-05: Eliminate Synchronous Modified Page Flushes (`MemoryFlushModifiedList`)**
   - **Issue:** Command 3 (`MemoryFlushModifiedList`) triggers an aggressive write storm by `nt!MiModifiedPageWriter`, flooding the storage controller at the exact moment the filesystem is re-indexing USN journals.
   - **Implementation:**
     Remove the execution block of `cmdFlushMod = SYSTEM_MEMORY_LIST_COMMAND::MemoryFlushModifiedList;`.
   - **Verification:** Confirm disk write throughput spikes do not coincide with memory cache zeroing.
 
-- [ ] **TASK-06: Upgrade to `MemoryPurgeLowPriorityStandbyList` (Command 5)**
+- [x] **TASK-06: Upgrade to `MemoryPurgeLowPriorityStandbyList` (Command 5)**
   - **Issue:** Command 4 (`MemoryPurgeStandbyList`) indiscriminately clears priorities 0 through 7. Priorities 5–7 contain vital kernel structures and hypervisor-protected pages (HVCI/VBS), triggering BugCheck 0x1A or 0x139.
   - **Implementation:**
     Enforce execution of command 5:

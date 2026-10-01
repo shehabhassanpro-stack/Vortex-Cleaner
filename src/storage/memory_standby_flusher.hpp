@@ -37,22 +37,18 @@ namespace WinTracePurge::Storage {
     ///   2. Active memory pool allocations, crypto key schedules, and network packet buffers.
     ///   3. Forensic strings and signature patterns accessible via \Device\PhysicalMemory or crash dumps.
     ///
-    /// === THE 3-PHASE RECURSIVE DRAIN PROTOCOL ===
+    /// === THE ENTERPRISE HARDENED SAFE-STANDBY PROTOCOL ===
     /// Interfacing directly with native Executive syscall ntdll.dll!NtSetSystemInformation under
     /// undocumented SystemMemoryListInformation (Class 80 / 0x50):
     ///
-    ///   Phase 1 (Trim): MemoryEmptyWorkingSets (cmd 2)
-    ///     Forces working set trim across background system services and processes:
-    ///     P_active -> P_active'  where Delta P subset (P_modified U P_standby)
+    ///   Hardened Operation: MemoryPurgeLowPriorityStandbyList (cmd 5)
+    ///     Deallocates low-priority Standby pages across priority levels 0 through 4:
+    ///     U_{k=0}^{4} P_standby(k) -> P_free -> P_zeroed
     ///
-    ///   Phase 2 (Commit): MemoryFlushModifiedList (cmd 3)
-    ///     Forces immediate asynchronous write-back of modified dirty pages to non-volatile storage:
-    ///     P_modified -> P_standby(7)
-    ///
-    ///   Phase 3 (Zero): MemoryPurgeStandbyList (cmd 4)
-    ///     Deallocates all Standby pages across all 8 priority levels (0 through 7):
-    ///     U_{k=0}^{7} P_standby(k) -> P_free -> P_zeroed
-    ///     Theorem: | U_{k=0}^{7} P_standby(k) | = 0  (Zero Cold-Residue Invariant)
+    ///     Critical Invariant & BugCheck Immunity:
+    ///     1. Working sets (P_active) are completely preserved, preventing hard page fault thrashing (Zero BSOD 0x50).
+    ///     2. Modified dirty pages (P_modified) are not forcefully flushed, preventing storage stack deadlocks (Zero BSOD 0x24/0x7A).
+    ///     3. High-priority kernel structures and HVCI/VBS secure pages (Priorities 5-7) are shielded (Zero BSOD 0x1A/0x139).
     ///
     /// Strictly satisfies ISO C++23 and WinTracePurge::Core::CleanerModuleType concept.
     class CMemoryStandbyFlusher : public Core::ICleanerModule {
@@ -174,64 +170,29 @@ namespace WinTracePurge::Storage {
             memBefore.dwLength = sizeof(MEMORYSTATUSEX);
             (void)::GlobalMemoryStatusEx(&memBefore);
 
-            // -------------------------------------------------------------
-            // Phase 1: Trim Active Working Sets (cmd = 2)
-            // -------------------------------------------------------------
-            SYSTEM_MEMORY_LIST_COMMAND cmdEmptyWS = SYSTEM_MEMORY_LIST_COMMAND::MemoryEmptyWorkingSets;
-            LONG status1 = pfnNtSetSystemInformation(
+            // -------------------------------------------------------------------------
+            // Hardened Memory Drain: Purge Low-Priority Standby List (cmd = 5)
+            // -------------------------------------------------------------------------
+            // TASK-04 & TASK-05: Eradicate MemoryEmptyWorkingSets (cmd 2) and MemoryFlushModifiedList (cmd 3).
+            // Eliminates hard page fault thrashing and I/O write storms, resolving BSODs 0x1A, 0x50, and 0x24.
+            //
+            // TASK-06: Purges Standby Priorities 0 through 4 (unreferenced game binaries, discarded files, shader cache)
+            // while strictly shielding Priorities 5 through 7 (core kernel structures, session drivers, HVCI/VBS hypervisor pages).
+            SYSTEM_MEMORY_LIST_COMMAND cmdPurgeLowStandby = SYSTEM_MEMORY_LIST_COMMAND::MemoryPurgeLowPriorityStandbyList;
+            LONG status = pfnNtSetSystemInformation(
                 kSystemMemoryListInformation,
-                &cmdEmptyWS,
-                sizeof(cmdEmptyWS)
+                &cmdPurgeLowStandby,
+                sizeof(cmdPurgeLowStandby)
             );
 
-            if (status1 >= 0) { // NT_SUCCESS
-                resultStats.WorkingSetTrimmedCount++;
-                Core::CAppLogger::LogTrace(L"MemoryStandbyFlusher", L"[Phase 1/3] System working sets trimmed cleanly.");
-            } else {
-                Core::CAppLogger::LogWarn(
-                    L"MemoryStandbyFlusher",
-                    std::format(L"NtSetSystemInformation(MemoryEmptyWorkingSets) returned NTSTATUS 0x{:08X}", static_cast<uint32_t>(status1))
-                );
-            }
-
-            // -------------------------------------------------------------
-            // Phase 2: Flush Modified Page List to disk (cmd = 3)
-            // -------------------------------------------------------------
-            SYSTEM_MEMORY_LIST_COMMAND cmdFlushMod = SYSTEM_MEMORY_LIST_COMMAND::MemoryFlushModifiedList;
-            LONG status2 = pfnNtSetSystemInformation(
-                kSystemMemoryListInformation,
-                &cmdFlushMod,
-                sizeof(cmdFlushMod)
-            );
-
-            if (status2 >= 0) { // NT_SUCCESS
-                resultStats.ModifiedListFlushed = true;
-                Core::CAppLogger::LogTrace(L"MemoryStandbyFlusher", L"[Phase 2/3] Modified dirty page list flushed to backing storage.");
-            } else {
-                Core::CAppLogger::LogWarn(
-                    L"MemoryStandbyFlusher",
-                    std::format(L"NtSetSystemInformation(MemoryFlushModifiedList) returned NTSTATUS 0x{:08X}", static_cast<uint32_t>(status2))
-                );
-            }
-
-            // -------------------------------------------------------------
-            // Phase 3: Purge and Zero Standby Page Lists 0-7 (cmd = 4)
-            // -------------------------------------------------------------
-            SYSTEM_MEMORY_LIST_COMMAND cmdPurgeStandby = SYSTEM_MEMORY_LIST_COMMAND::MemoryPurgeStandbyList;
-            LONG status3 = pfnNtSetSystemInformation(
-                kSystemMemoryListInformation,
-                &cmdPurgeStandby,
-                sizeof(cmdPurgeStandby)
-            );
-
-            if (status3 >= 0) { // NT_SUCCESS
+            if (status >= 0) { // NT_SUCCESS
                 resultStats.StandbyPurged = true;
-                Core::CAppLogger::LogTrace(L"MemoryStandbyFlusher", L"[Phase 3/3] All Standby Page Lists (Priorities 0-7) purged into zeroed pool.");
+                Core::CAppLogger::LogTrace(L"MemoryStandbyFlusher", L"Low-priority Standby Page Lists (Priorities 0-4) purged cleanly into zeroed pool.");
             } else {
-                DWORD win32Err = (status3 == 0xC0000061) ? ERROR_PRIVILEGE_NOT_HELD : ERROR_GEN_FAILURE;
+                DWORD win32Err = (status == 0xC0000061) ? ERROR_PRIVILEGE_NOT_HELD : ERROR_GEN_FAILURE;
                 return std::unexpected(Core::SystemError::FromWin32(
                     win32Err,
-                    std::format(L"NtSetSystemInformation(MemoryPurgeStandbyList) failed with NTSTATUS 0x{:08X}", static_cast<uint32_t>(status3))
+                    std::format(L"NtSetSystemInformation(MemoryPurgeLowPriorityStandbyList) failed with NTSTATUS 0x{:08X}", static_cast<uint32_t>(status))
                 ));
             }
 
