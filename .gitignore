@@ -35,3 +35,5 @@ cmake_install.cmake
 *.log
 VortexCleaner.log
 VortexCleaner_Fallback.log
+scratch/
+
