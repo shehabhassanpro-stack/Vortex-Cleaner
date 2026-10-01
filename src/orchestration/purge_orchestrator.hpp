@@ -27,6 +27,8 @@
 #include <memory>
 #include <format>
 #include <filesystem>
+#include <chrono>
+#include <thread>
 
 namespace WinTracePurge::Orchestration {
 
@@ -215,15 +217,28 @@ namespace WinTracePurge::Orchestration {
             auto usnRes = journalScrubber.Purge(usnCtx, false);
             if (usnRes) {
                 stats.UsnJournalsScrubbed += usnRes->ItemsPurged;
+                Core::CAppLogger::LogInfo(L"Orchestrator", std::format(L"Phase 11 completed: {} NTFS USN Journals scrubbed.", stats.UsnJournalsScrubbed));
+            } else {
+                Core::CAppLogger::LogWarn(L"Orchestrator", std::format(L"Phase 11 warning: {}", usnRes.error().Message));
             }
 
+            // TASK-07: Inter-Phase Quiescence Barrier & Filesystem Filter Context Settling
+            // Allow Ntfs.sys, fltmgr.sys, and WdFilter.sys to complete asynchronous stream teardown
+            // and stabilize volume handles before initiating physical RAM cache zeroing.
+            report(98, L"Synchronizing filesystem cache and filter contexts (quiescence barrier)...");
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
             // Phase 12: Physical RAM Standby Page List & Memory Cache Zeroing (NtSetSystemInformation)
-            report(99, L"Zeroing physical RAM Standby Page Lists (0-7) via native NtSetSystemInformation...");
+            report(99, L"Zeroing physical RAM Standby Page Lists (P0-P4) via native NtSetSystemInformation...");
             Storage::CMemoryStandbyFlusher memFlusher;
             Core::CleanupContext memCtx;
             auto memRes = memFlusher.Purge(memCtx, false);
             if (memRes) {
                 stats.StandbyMemoryBytesReclaimed += memRes->BytesReclaimed;
+                Core::CAppLogger::LogInfo(L"Orchestrator", std::format(L"Phase 12 completed: {:.2f} MB standby memory reclaimed.",
+                                          static_cast<double>(memRes->BytesReclaimed) / (1024.0 * 1024.0)));
+            } else {
+                Core::CAppLogger::LogWarn(L"Orchestrator", std::format(L"Phase 12 warning: {}", memRes.error().Message));
             }
 
             // Execute custom registered cleaner modules

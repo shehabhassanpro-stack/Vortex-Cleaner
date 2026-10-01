@@ -161,7 +161,7 @@ This is the definitive industry standard employed by Microsoft Sysinternals (**R
 **Subsystem:** Central Pipeline Orchestration (`WinTracePurge::Orchestration::CPurgePipelineOrchestrator`)  
 **Target File:** `src/orchestration/purge_orchestrator.hpp`
 
-- [ ] **TASK-07: Insert Cooperative Inter-Phase Quiescence Fence**
+- [x] **TASK-07: Insert Cooperative Inter-Phase Quiescence Fence**
   - **Issue:** Zero-delay execution between Phase 11 (Disk USN Scrub) and Phase 12 (RAM Purge) prevents the NT Filter Manager (`fltmgr.sys`) and Windows Defender (`WdFilter.sys`) from stabilizing their file stream contexts.
   - **Implementation:**
     Insert an explicit cooperative temporal barrier between Phase 11 and Phase 12:
@@ -171,7 +171,7 @@ This is the definitive industry standard employed by Microsoft Sysinternals (**R
     ```
   - **Verification:** Monitor thread context switches; verify all pending disk IRPs complete before memory purge initiates.
 
-- [ ] **TASK-08: Enforce Strict Post-Condition Validation**
+- [x] **TASK-08: Enforce Strict Post-Condition Validation**
   - **Issue:** Unchecked errors in Phase 11 can propagate corrupted volume states into Phase 12.
   - **Implementation:**
     Assert that Phase 11 reports `stats.UsnJournalsScrubbed > 0` and volume handles are closed cleanly before entering Phase 12.
