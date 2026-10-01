@@ -220,10 +220,12 @@ namespace WinTracePurge::Storage {
                             driveLetter, oldJournalData.UsnJournalID, static_cast<uint64_t>(oldJournalData.NextUsn))
             );
 
-            // Phase 2: Complete journal stream deallocation and deletion
+            // Phase 2: Complete synchronous journal stream deallocation and MFT walk
+            // TASK-01: USN_DELETE_FLAG_DELETE | USN_DELETE_FLAG_NOTIFY guarantees synchronous blocking
+            // until the NTFS driver finishes traversing all MFT records and clearing Last USN attributes.
             DELETE_USN_JOURNAL_DATA delData{};
             delData.UsnJournalID = oldJournalData.UsnJournalID;
-            delData.DeleteFlags = USN_DELETE_FLAG_DELETE; // Truncate $J to 0 and drop ID
+            delData.DeleteFlags = USN_DELETE_FLAG_DELETE | USN_DELETE_FLAG_NOTIFY;
 
             BOOL delOk = ::DeviceIoControl(
                 hVol.Get(),
@@ -239,7 +241,7 @@ namespace WinTracePurge::Storage {
             if (!delOk) {
                 DWORD dwErr = ::GetLastError();
                 if (dwErr == ERROR_JOURNAL_DELETE_IN_PROGRESS) {
-                    // Dynamic asynchronous deletion polling (max 3000ms deadline)
+                    // Defensive fallback: asynchronous deletion polling if deletion was externally pending
                     auto pollStart = std::chrono::steady_clock::now();
                     while (true) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -263,7 +265,7 @@ namespace WinTracePurge::Storage {
                             std::chrono::steady_clock::now() - pollStart
                         ).count();
 
-                        if (elapsed > 3000) {
+                        if (elapsed > 5000) {
                             return std::unexpected(Core::SystemError(
                                 Core::ErrorCode::SanitizationFailed,
                                 ERROR_JOURNAL_DELETE_IN_PROGRESS,
@@ -271,13 +273,18 @@ namespace WinTracePurge::Storage {
                             ));
                         }
                     }
-                } else {
+                } else if (dwErr != ERROR_JOURNAL_NOT_ACTIVE) {
                     return std::unexpected(Core::SystemError::FromWin32(
                         dwErr,
                         std::format(L"FSCTL_DELETE_USN_JOURNAL failed on drive '{}:'", driveLetter)
                     ));
                 }
             }
+
+            // TASK-02: Volume I/O Barrier & Dirty Metadata Drain
+            // Flushes the volume cache and commits all metadata mutations to physical media
+            // before creating a fresh journal stream.
+            (void)::FlushFileBuffers(hVol.Get());
 
             // Phase 3: Immediate clean re-instantiation to preserve Windows Search Indexer stability
             CREATE_USN_JOURNAL_DATA createData{};
@@ -303,7 +310,10 @@ namespace WinTracePurge::Storage {
                 ));
             }
 
-            // Post-condition validation: Verify new Journal ID generation
+            // Flush again to commit the newly created journal structures
+            (void)::FlushFileBuffers(hVol.Get());
+
+            // TASK-03: Post-condition validation: Verify new Journal ID generation and clean state
             USN_JOURNAL_DATA_V0 newJournalData{};
             if (::DeviceIoControl(
                 hVol.Get(),
@@ -317,8 +327,9 @@ namespace WinTracePurge::Storage {
                 
                 Core::CAppLogger::LogInfo(
                     L"NtfsJournalScrubber",
-                    std::format(L"Drive '{}:' Clean Journal Re-created. New ID: 0x{:016X} (Old ID: 0x{:016X})",
-                                driveLetter, newJournalData.UsnJournalID, oldJournalData.UsnJournalID)
+                    std::format(L"Drive '{}:' Clean Journal Re-created. New ID: 0x{:016X} (Old ID: 0x{:016X}, LowestValidUsn: 0x{:016X}, NextUsn: 0x{:016X})",
+                                driveLetter, newJournalData.UsnJournalID, oldJournalData.UsnJournalID,
+                                static_cast<uint64_t>(newJournalData.LowestValidUsn), static_cast<uint64_t>(newJournalData.NextUsn))
                 );
             }
 

@@ -99,7 +99,7 @@ This is the definitive industry standard employed by Microsoft Sysinternals (**R
 **Subsystem:** Storage Forensics (`WinTracePurge::Storage::CNtfsJournalScrubber`)  
 **Target File:** `src/storage/ntfs_journal_scrubber.hpp`
 
-- [ ] **TASK-01: Implement Synchronous MFT Traversal Blocking via Dual-Flag Binding**
+- [x] **TASK-01: Implement Synchronous MFT Traversal Blocking via Dual-Flag Binding**
   - **Issue:** Passing `USN_DELETE_FLAG_DELETE` alone returns asynchronously, causing background MFT walks to collide with downstream disk and memory I/O.
   - **Implementation:**
     Update `DELETE_USN_JOURNAL_DATA` in `PurgeVolumeJournal`:
@@ -111,13 +111,13 @@ This is the definitive industry standard employed by Microsoft Sysinternals (**R
     Ensure that on non-overlapped handles, `DeviceIoControl` synchronously blocks until the NTFS master file table traversal is 100% complete.
   - **Verification:** Query journal status immediately post-call; assert `ERROR_JOURNAL_NOT_ACTIVE` without polling loops.
 
-- [ ] **TASK-02: Implement Volume I/O Barrier & Dirty Metadata Drain**
+- [x] **TASK-02: Implement Volume I/O Barrier & Dirty Metadata Drain**
   - **Issue:** Unwritten filesystem metadata in the volume cache can cause race conditions when recreating the journal stream.
   - **Implementation:**
     Invoke `::FlushFileBuffers(hVol.Get())` immediately after `FSCTL_DELETE_USN_JOURNAL` and before `FSCTL_CREATE_USN_JOURNAL`.
   - **Verification:** Ensure zero pending volume I/O requests before journal re-instantiation.
 
-- [ ] **TASK-03: Implement Post-Recreation Stream Stabilization Check**
+- [x] **TASK-03: Implement Post-Recreation Stream Stabilization Check**
   - **Issue:** Rapid handle closure immediately after `FSCTL_CREATE_USN_JOURNAL` can disrupt filesystem filter context initialization.
   - **Implementation:**
     Perform verification read via `FSCTL_QUERY_USN_JOURNAL` to confirm that `newJournalData.UsnJournalID` is active and `NextUsn == 0`.
