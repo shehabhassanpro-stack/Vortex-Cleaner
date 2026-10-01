@@ -59,6 +59,10 @@ void RunCliMode() {
     std::wcout << std::format(L" - DriverStore Packages Removed: {}\n", stats.DriverPackagesRemoved);
     std::wcout << std::format(L" - Registry Subtrees Purged:     {}\n", stats.RegistryKeysPurged);
     std::wcout << std::format(L" - Files & Caches Sanitized:     {}\n", stats.FilesSanitized);
+    std::wcout << std::format(L" - Crash Dumps & WER Shredded:   {}\n", stats.CrashDumpsPurged);
+    std::wcout << std::format(L" - Event Log Records Sanitized:  {}\n", stats.EventLogsSanitized);
+    std::wcout << std::format(L" - NTFS USN Journals Scrubbed:   {}\n", stats.UsnJournalsScrubbed);
+    std::wcout << std::format(L" - Standby RAM Bytes Reclaimed:  {:.2f} MB\n", static_cast<double>(stats.StandbyMemoryBytesReclaimed) / (1024.0 * 1024.0));
     std::wcout << L" - Temp & Diagnostics Swept:     COMPLETED\n";
     std::wcout << L"---------------------------------------------------------\n";
     std::wcout << L"System cleanup finished cleanly. Please restart your PC.\n\n";

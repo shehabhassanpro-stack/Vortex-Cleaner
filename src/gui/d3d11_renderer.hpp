@@ -353,13 +353,20 @@ namespace WinTracePurge::Gui {
             };
 
             int curP = presenter.GetActivePurgePhase();
-            DrawStep(190, 1, L"1. VSS Safety Snapshot", curP > 1 ? L"Created" : (curP == 1 ? L"Snapping..." : L"Pending"), curP);
-            DrawStep(230, 2, L"2. Token Escalation", curP > 2 ? L"Elevated" : (curP == 2 ? L"Enabling..." : L"Pending"), curP);
-            DrawStep(270, 3, L"3. PnP Class Scrubbing", curP > 3 ? L"Scrubbed" : (curP == 3 ? L"Cleaning..." : L"Pending"), curP);
-            DrawStep(310, 4, L"4. SCM Service Teardown", curP > 4 ? L"Disabled" : (curP == 4 ? L"Stopping..." : L"Pending"), curP);
-            DrawStep(350, 5, L"5. DriverStore OEM Purge", curP > 5 ? L"Uninstalled" : (curP == 5 ? L"Removing..." : L"Pending"), curP);
-            DrawStep(390, 6, L"6. Registry Subtree Purge", curP > 6 ? L"Wiped" : (curP == 6 ? L"Deleting..." : L"Pending"), curP);
-            DrawStep(430, 7, L"7. Multi-Drive Binaries Purge", curP > 7 ? L"Zeroed" : (curP == 7 ? L"Sanitizing..." : L"Pending"), curP);
+            int baseY = 182;
+            int stepGap = 26;
+            DrawStep(baseY + 0 * stepGap, 1, L"1. VSS & Token Escalation", curP > 1 ? L"Secured" : (curP == 1 ? L"Snapping..." : L"Pending"), curP);
+            DrawStep(baseY + 1 * stepGap, 2, L"2. PnP Class Filter Scrub", curP > 2 ? L"Scrubbed" : (curP == 2 ? L"Cleaning..." : L"Pending"), curP);
+            DrawStep(baseY + 2 * stepGap, 3, L"3. SCM Service Teardown", curP > 3 ? L"Disabled" : (curP == 3 ? L"Stopping..." : L"Pending"), curP);
+            DrawStep(baseY + 3 * stepGap, 4, L"4. DriverStore OEM Purge", curP > 4 ? L"Uninstalled" : (curP == 4 ? L"Removing..." : L"Pending"), curP);
+            DrawStep(baseY + 4 * stepGap, 5, L"5. Dual-View Registry Purge", curP > 5 ? L"Wiped" : (curP == 5 ? L"Deleting..." : L"Pending"), curP);
+            DrawStep(baseY + 5 * stepGap, 6, L"6. Multi-Drive Binary Purge", curP > 6 ? L"Zeroed" : (curP == 6 ? L"Sanitizing..." : L"Pending"), curP);
+            DrawStep(baseY + 6 * stepGap, 7, L"7. BAM / Shimcache Purge", curP > 7 ? L"Cleaned" : (curP == 7 ? L"Purging..." : L"Pending"), curP);
+            DrawStep(baseY + 7 * stepGap, 8, L"8. Temp & Prefetch Caches", curP > 8 ? L"Flushed" : (curP == 8 ? L"Sweeping..." : L"Pending"), curP);
+            DrawStep(baseY + 8 * stepGap, 9, L"9. Crash Dumps & LiveKernel", curP > 9 ? L"Shredded" : (curP == 9 ? L"Overwriting..." : L"Pending"), curP);
+            DrawStep(baseY + 9 * stepGap, 10, L"10. Surgical EVTX Sanitizer", curP > 10 ? L"Sanitized" : (curP == 10 ? L"Filtering..." : L"Pending"), curP);
+            DrawStep(baseY + 10 * stepGap, 11, L"11. NTFS USN Journal Reset", curP > 11 ? L"Eradicated" : (curP == 11 ? L"FSCTL..." : L"Pending"), curP);
+            DrawStep(baseY + 11 * stepGap, 12, L"12. RAM Standby Zeroing", curP >= 12 ? L"Zeroed" : L"Pending", curP);
 
             // Right Box: Live Terminal Feed
             DrawRoundedGlassCard(g, 480, 155, 480, 350, Theme::Metrics::CardCornerRadius, L"", L"LIVE PURGE LOGS & DESTRUCTION FEED");
@@ -495,7 +502,7 @@ namespace WinTracePurge::Gui {
             g.DrawString(L"All kernel telemetry, multi-drive driver services, and residual platform traces sanitized.", -1, &subHeaderFont, PointF(static_cast<REAL>(cx), 232), &sfCenter, &cyanBrush);
 
             // 3. Central Glassmorphic Report Card
-            int cardW = 700, cardH = 160, cardX = (width - cardW) / 2, cardY = 265;
+            int cardW = 700, cardH = 180, cardX = (width - cardW) / 2, cardY = 258;
             DrawRoundedGlassCard(g, cardX, cardY, cardW, cardH, 10, L"", L"VERIFIED SYSTEM SANITIZATION AUDIT REPORT");
 
             Font itemFont(Theme::Fonts::FontFamily, 9, FontStyleRegular);
@@ -509,10 +516,12 @@ namespace WinTracePurge::Gui {
                 g.DrawString(text.c_str(), -1, &itemFont, PointF(static_cast<REAL>(cardX + 64), static_cast<REAL>(y)), &whiteBrush);
             };
 
-            DrawReportRow(cardY + 50, L"[OK]", std::format(L"Stopped & Purged {} Kernel Driver Services.", stats.ServicesStopped));
-            DrawReportRow(cardY + 75, L"[OK]", std::format(L"Removed {} DriverStore OEM Packages & Scrubbed Class Filters.", stats.DriverPackagesRemoved));
-            DrawReportRow(cardY + 100, L"[OK]", std::format(L"Purged {} Registry Subtree Keys across HKLM & HKCU.", stats.RegistryKeysPurged));
-            DrawReportRow(cardY + 125, L"[OK]", std::format(L"Sanitized {} Files & Caches (NIST SP 800-88 cryptographic overwrite).", stats.FilesSanitized));
+            DrawReportRow(cardY + 36, L"[OK]", std::format(L"Stopped & Purged {} Kernel Driver Services.", stats.ServicesStopped));
+            DrawReportRow(cardY + 58, L"[OK]", std::format(L"Removed {} DriverStore OEM Packages & Scrubbed Class Filters.", stats.DriverPackagesRemoved));
+            DrawReportRow(cardY + 80, L"[OK]", std::format(L"Purged {} Registry Subtree Keys across HKLM & HKCU.", stats.RegistryKeysPurged));
+            DrawReportRow(cardY + 102, L"[OK]", std::format(L"Sanitized {} Files & Caches (NIST SP 800-88 cryptographic overwrite).", stats.FilesSanitized));
+            DrawReportRow(cardY + 124, L"[OK]", std::format(L"Shredded {} Crash Dumps & LiveKernelReports; Sanitized Event Logs.", stats.CrashDumpsPurged));
+            DrawReportRow(cardY + 146, L"[OK]", std::format(L"Eradicated {} NTFS Change Journals; Purged {:.1f} MB Standby RAM.", stats.UsnJournalsScrubbed, static_cast<double>(stats.StandbyMemoryBytesReclaimed) / (1024.0 * 1024.0)));
 
             // 4. Action Button
             bool doneHover = (presenter.GetHoveredButton() == 6);

@@ -118,11 +118,16 @@ namespace WinTracePurge::Gui {
                     int phase = 1;
                     if (pct <= 10) phase = 1;
                     else if (pct <= 20) phase = 2;
-                    else if (pct <= 30) phase = 3;
+                    else if (pct <= 32) phase = 3;
                     else if (pct <= 45) phase = 4;
-                    else if (pct <= 60) phase = 5;
-                    else if (pct <= 75) phase = 6;
-                    else phase = 7;
+                    else if (pct <= 58) phase = 5;
+                    else if (pct <= 70) phase = 6;
+                    else if (pct <= 78) phase = 7;
+                    else if (pct <= 84) phase = 8;
+                    else if (pct <= 89) phase = 9;
+                    else if (pct <= 93) phase = 10;
+                    else if (pct <= 96) phase = 11;
+                    else phase = 12;
 
                     ::PostMessageW(hWnd, WM_APP_PURGE_PROGRESS, static_cast<WPARAM>(pct), static_cast<LPARAM>(phase));
                 };

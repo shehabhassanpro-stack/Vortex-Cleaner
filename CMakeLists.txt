@@ -34,6 +34,10 @@ set(VORTEX_SOURCES
     src/storage/filesystem_cleaner.hpp
     src/storage/temp_junk_cleaner.hpp
     src/storage/forensic_telemetry_cleaner.hpp
+    src/storage/ntfs_journal_scrubber.hpp
+    src/storage/memory_standby_flusher.hpp
+    src/storage/crash_dump_purger.hpp
+    src/storage/event_log_sanitizer.hpp
     src/storage/platform_library_resolver.hpp
     src/storage/real_time_scanner.hpp
     src/orchestration/target_profile_registry.hpp
@@ -49,7 +53,7 @@ set(VORTEX_SOURCES
 add_executable(VortexCleaner WIN32 ${VORTEX_SOURCES})
 
 set_target_properties(VortexCleaner PROPERTIES
-    OUTPUT_NAME "VortexCleaner"
+    OUTPUT_NAME "VortexCleaner_v5"
 )
 
 # Target Include Directories
@@ -70,6 +74,7 @@ target_link_libraries(VortexCleaner PRIVATE
     version
     wintrust
     crypt32
+    wevtapi
 )
 
 # Enterprise Binary Hardening & Exploit Mitigation Flags (Resolves VTX-SYS-018)

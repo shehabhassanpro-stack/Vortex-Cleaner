@@ -6,6 +6,7 @@
 #include <windows.h>
 #include <vector>
 #include <span>
+#include <initializer_list>
 #include <string_view>
 #include <format>
 
@@ -41,6 +42,11 @@ namespace WinTracePurge::Security {
                 m_restorablePrivileges = std::move(other.m_restorablePrivileges);
             }
             return *this;
+        }
+
+        /// @brief Acquires and elevates an initializer list of requested privileges.
+        [[nodiscard]] static Core::Result<TokenPrivilegeScope> Acquire(std::initializer_list<Core::zstring_view> privileges) {
+            return Acquire(std::span<const Core::zstring_view>(privileges.begin(), privileges.size()));
         }
 
         /// @brief Acquires and elevates a span of requested privileges, caching previous states.
