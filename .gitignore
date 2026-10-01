@@ -1,0 +1,37 @@
+# ==========================================
+# C++ / CMake / Visual Studio Build Outputs
+# ==========================================
+build/
+bin/
+out/
+x64/
+x86/
+Release/
+Debug/
+
+# Executables & Compiled Binaries
+*.exe
+*.dll
+*.pdb
+*.ilk
+*.exp
+*.obj
+*.lib
+
+# Visual Studio Cache & User Preferences
+.vs/
+*.user
+*.suo
+*.sln.docstates
+
+# CMake Generated Files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+*.stamp
+*.depend
+
+# Runtime Logs
+*.log
+VortexCleaner.log
+VortexCleaner_Fallback.log
