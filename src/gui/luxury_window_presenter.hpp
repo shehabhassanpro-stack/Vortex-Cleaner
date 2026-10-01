@@ -96,6 +96,7 @@ namespace WinTracePurge::Gui {
             m_state = ViewState::Purging;
             m_scanProgress = 0;
             m_activePurgePhase = 1;
+            m_livePurgeDetail = L"Initializing surgical purge...";
 
             // 60Hz (16ms) timer for smooth purge spinner animation
             m_pView->SetTimerFrequency(16);
@@ -127,7 +128,8 @@ namespace WinTracePurge::Gui {
                     else if (pct <= 89) phase = 9;
                     else if (pct <= 93) phase = 10;
                     else if (pct <= 96) phase = 11;
-                    else phase = 12;
+                    else if (pct < 100) phase = 12;
+                    else phase = 13;
 
                     ::PostMessageW(hWnd, WM_APP_PURGE_PROGRESS, static_cast<WPARAM>(pct), static_cast<LPARAM>(phase));
                 };
@@ -166,6 +168,15 @@ namespace WinTracePurge::Gui {
         void HandlePurgeProgress(int pct, int phase) {
             m_scanProgress = pct;
             m_activePurgePhase = phase;
+            if (pct >= 96 && pct < 99) {
+                m_livePurgeDetail = L"Synchronizing filesystem cache and filter contexts...";
+            } else if (pct >= 99 && pct < 100) {
+                m_livePurgeDetail = L"Zeroing physical RAM Standby Page Lists (P0-P4)...";
+            } else if (pct >= 100) {
+                m_livePurgeDetail = L"Surgical purge completed successfully.";
+            } else {
+                m_livePurgeDetail = L"Sanitizing Multi-Drive Artifacts & Kernel Services...";
+            }
             if (m_pView) {
                 m_pView->InvalidateArea(nullptr);
             }
@@ -175,6 +186,7 @@ namespace WinTracePurge::Gui {
             if (pStats) {
                 m_lastPurgeStats = *pStats;
             }
+            m_livePurgeDetail = L"Surgical purge completed successfully.";
             m_currentScanReport.TotalJunkBytes = 0;
             m_currentScanReport.TempFilesCount = 0;
             m_currentScanReport.ActiveServicesFound.clear();
@@ -292,6 +304,7 @@ namespace WinTracePurge::Gui {
         [[nodiscard]] int GetScanProgress() const noexcept { return m_scanProgress; }
         [[nodiscard]] int GetActiveScanPhase() const noexcept { return m_activeScanPhase; }
         [[nodiscard]] int GetActivePurgePhase() const noexcept { return m_activePurgePhase; }
+        [[nodiscard]] const std::wstring& GetLivePurgeDetail() const noexcept { return m_livePurgeDetail; }
         [[nodiscard]] float GetAnimAngle() const noexcept { return m_animAngle; }
         [[nodiscard]] int GetHoveredButton() const noexcept { return m_hoveredBtn; }
 
@@ -306,6 +319,7 @@ namespace WinTracePurge::Gui {
         int m_activeScanPhase = 1;
         int m_activePurgePhase = 1;
         std::wstring m_liveScanDetail = L"Ready to scan.";
+        std::wstring m_livePurgeDetail = L"Ready to purge.";
         std::vector<std::wstring> m_liveScanLogs;
         float m_animAngle = 0.0f;
         int m_hoveredBtn = -1;

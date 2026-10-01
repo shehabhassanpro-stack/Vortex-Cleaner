@@ -182,16 +182,16 @@ This is the definitive industry standard employed by Microsoft Sysinternals (**R
 **Subsystem:** User Interface & Reporting (`src/gui/`, `src/main.cpp`)  
 **Target Files:** `src/gui/luxury_window_presenter.hpp`, `src/gui/d3d11_renderer.hpp`, `src/main.cpp`
 
-- [ ] **TASK-09: Update UI Progress Mapping to Account for Quiescence Fence**
+- [x] **TASK-09: Update UI Progress Mapping to Account for Quiescence Fence**
   - **Implementation:**
     Adjust progress timeline in `luxury_window_presenter.hpp` to smoothly animate during the 1000ms quiescence window between 96% and 99%, displaying `L"Synchronizing filesystem cache and filter contexts..."`.
 
-- [ ] **TASK-10: Update D3D11 Vector Card Milestone Text**
+- [x] **TASK-10: Update D3D11 Vector Card Milestone Text**
   - **Implementation:**
     Update Step 12 in `d3d11_renderer.hpp`:
     `DrawStep(..., 12, L"12. RAM Standby Purge (P0-P4)", ...);` reflecting the hardened priority-safe architecture.
 
-- [ ] **TASK-11: Update CLI Summary Metrics**
+- [x] **TASK-11: Update CLI Summary Metrics**
   - **Implementation:**
     Reflect the safe reclaimed memory statistics in `RunCliMode()` in `src/main.cpp`.
 

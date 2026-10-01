@@ -319,7 +319,7 @@ namespace WinTracePurge::Gui {
 
             int progress = presenter.GetScanProgress();
             g.DrawString(L"REAL-TIME SURGICAL TRACE PURGE", -1, &headerFont, PointF(static_cast<REAL>(width / 2), 65), &sfCenter, &whiteBrush);
-            std::wstring progressTitle = std::format(L"Sanitizing Multi-Drive Artifacts & Kernel Services... ({}%)", progress);
+            std::wstring progressTitle = std::format(L"{} ({}%)", presenter.GetLivePurgeDetail(), progress);
             g.DrawString(progressTitle.c_str(), -1, &subHeaderFont, PointF(static_cast<REAL>(width / 2), 95), &sfCenter, &cyanBrush);
 
             // Glowing Progress Bar
@@ -366,7 +366,7 @@ namespace WinTracePurge::Gui {
             DrawStep(baseY + 8 * stepGap, 9, L"9. Crash Dumps & LiveKernel", curP > 9 ? L"Shredded" : (curP == 9 ? L"Overwriting..." : L"Pending"), curP);
             DrawStep(baseY + 9 * stepGap, 10, L"10. Surgical EVTX Sanitizer", curP > 10 ? L"Sanitized" : (curP == 10 ? L"Filtering..." : L"Pending"), curP);
             DrawStep(baseY + 10 * stepGap, 11, L"11. NTFS USN Journal Reset", curP > 11 ? L"Eradicated" : (curP == 11 ? L"FSCTL..." : L"Pending"), curP);
-            DrawStep(baseY + 11 * stepGap, 12, L"12. RAM Standby Zeroing", curP >= 12 ? L"Zeroed" : L"Pending", curP);
+            DrawStep(baseY + 11 * stepGap, 12, L"12. RAM Standby Purge (P0-P4)", curP > 12 ? L"Purged" : (curP == 12 ? (progress >= 99 ? L"Purging..." : L"Settling...") : L"Pending"), curP);
 
             // Right Box: Live Terminal Feed
             DrawRoundedGlassCard(g, 480, 155, 480, 350, Theme::Metrics::CardCornerRadius, L"", L"LIVE PURGE LOGS & DESTRUCTION FEED");
@@ -521,7 +521,7 @@ namespace WinTracePurge::Gui {
             DrawReportRow(cardY + 80, L"[OK]", std::format(L"Purged {} Registry Subtree Keys across HKLM & HKCU.", stats.RegistryKeysPurged));
             DrawReportRow(cardY + 102, L"[OK]", std::format(L"Sanitized {} Files & Caches (NIST SP 800-88 cryptographic overwrite).", stats.FilesSanitized));
             DrawReportRow(cardY + 124, L"[OK]", std::format(L"Shredded {} Crash Dumps & LiveKernelReports; Sanitized Event Logs.", stats.CrashDumpsPurged));
-            DrawReportRow(cardY + 146, L"[OK]", std::format(L"Eradicated {} NTFS Change Journals; Purged {:.1f} MB Standby RAM.", stats.UsnJournalsScrubbed, static_cast<double>(stats.StandbyMemoryBytesReclaimed) / (1024.0 * 1024.0)));
+            DrawReportRow(cardY + 146, L"[OK]", std::format(L"Eradicated {} NTFS Change Journals; Purged {:.1f} MB Low-Priority Standby RAM.", stats.UsnJournalsScrubbed, static_cast<double>(stats.StandbyMemoryBytesReclaimed) / (1024.0 * 1024.0)));
 
             // 4. Action Button
             bool doneHover = (presenter.GetHoveredButton() == 6);

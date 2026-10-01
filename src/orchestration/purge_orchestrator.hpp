@@ -225,8 +225,13 @@ namespace WinTracePurge::Orchestration {
             // TASK-07: Inter-Phase Quiescence Barrier & Filesystem Filter Context Settling
             // Allow Ntfs.sys, fltmgr.sys, and WdFilter.sys to complete asynchronous stream teardown
             // and stabilize volume handles before initiating physical RAM cache zeroing.
-            report(98, L"Synchronizing filesystem cache and filter contexts (quiescence barrier)...");
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            report(97, L"Synchronizing filesystem cache and filter contexts (quiescence barrier)...");
+            for (int i = 0; i < 4; ++i) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(250));
+                if (i == 1) {
+                    report(98, L"Synchronizing filesystem cache and filter contexts (quiescence barrier)...");
+                }
+            }
 
             // Phase 12: Physical RAM Standby Page List & Memory Cache Zeroing (NtSetSystemInformation)
             report(99, L"Zeroing physical RAM Standby Page Lists (P0-P4) via native NtSetSystemInformation...");
