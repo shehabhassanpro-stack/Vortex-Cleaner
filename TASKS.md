@@ -201,11 +201,11 @@ This is the definitive industry standard employed by Microsoft Sysinternals (**R
 **Subsystem:** Quality Assurance & Exploit Defense  
 **Target:** Global Workspace
 
-- [ ] **TASK-12: Zero-Warning MSVC C++23 Compilation Gate**
+- [x] **TASK-12: Zero-Warning MSVC C++23 Compilation Gate**
   - **Command:** `cmake --build build --config Release`
   - **Requirement:** Zero compiler warnings, zero linker warnings under `/permissive- /WX /W4 /std:c++23`.
 
-- [ ] **TASK-13: Live Memory Dump & WinDbg Kernel Verification**
+- [x] **TASK-13: Live Memory Dump & WinDbg Kernel Verification**
   - **Verification Target:**
     1. Confirm `LowestValidUsn == 0` on `C:` via `fsutil usn queryjournal C:`.
     2. Confirm memory standby priority 0–4 cache eviction without BugCheck.
